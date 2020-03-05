@@ -1,0 +1,121 @@
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    padding: 0;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Board
+ */
+
+#board {
+    width: 1400px;
+    height: 900px;
+    border: 2px solid #000;
+    position: relative;
+}
+
+/* Hexagon */
+
+.hexagon {
+    width: 64px;
+    height: 128px;
+    visibility: hidden;
+    overflow: hidden;
+    transform: translateY(-28px) translateX(-34px) rotate(-60deg);
+    position: absolute;
+    cursor: pointer;
+}
+
+
+.hexagon-1 {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-60deg);
+}
+
+.hexagon-2 {
+    background-image: url("assets/hexa-0.png");
+    background-size: 67px;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 100%;
+    height: 100%;
+    visibility: visible;
+    transform: rotate(-60deg);
+}
+
+.hexagon:not([data-value]) .hexagon-2 {
+    filter: grayscale(1);
+}
+
+.hexagon.hover .hexagon-2 {
+    filter: grayscale(0);
+    opacity: .7;
+}
+
+.hexagon[data-value="1"] .hexagon-2 {
+    background-image: url("assets/hexa-1.png");
+}
+
+.hexagon[data-value="2"] .hexagon-2 {
+    background-image: url("assets/hexa-2.png");
+}
+
+.hexagon[data-value="3"] .hexagon-2 {
+    background-image: url("assets/hexa-3.png");
+}
+
+.hexagon[data-value="4"] .hexagon-2 {
+    background-image: url("assets/hexa-4.png");
+}
+
+.hexagon[data-value="5"] .hexagon-2 {
+    background-image: url("assets/hexa-5.png");
+}
+
+.draggable-hexagon {
+    height: 144px;
+    width: 140px;
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    transform: translateY(-40px);
+    z-index: 1000;
+}
+
+.dragging {
+    pointer-events: none;
+}
+
+.draggable-hexagon.rotate-0 .hexagon:nth-child(1) {
+    transform: translateY(-28px) translateX(0) rotate(-60deg);
+}
+
+.draggable-hexagon.rotate-0 .hexagon:nth-child(2) {
+    transform: translateY(-28px) translateX(68px) rotate(-60deg);
+}
+
+.draggable-hexagon.rotate-1 .hexagon:nth-child(1) {
+    transform: translateY(-58px) translateX(17px) rotate(-60deg);
+}
+
+.draggable-hexagon.rotate-1 .hexagon:nth-child(2) {
+    transform: translateY(2px) translateX(51px) rotate(-60deg);
+}
+
+.draggable-hexagon.rotate-2 .hexagon:nth-child(1) {
+    transform: translateY(-58px) translateX(51px) rotate(-60deg);
+}
+
+.draggable-hexagon.rotate-2 .hexagon:nth-child(2) {
+    transform: translateY(2px) translateX(17px) rotate(-60deg);
+}
