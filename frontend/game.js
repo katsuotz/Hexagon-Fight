@@ -1,12 +1,32 @@
 class Game {
     constructor() {
         this.board = document.getElementById('board');
+
+        this.board.innerHTML = '';
+
+        this.you = null;
+
+        this.start = false;
     }
 
-    init(total_row) {
+    init(total_row, data, socket) {
+        console.log('new-game');
+
+        this.socket = socket;
+
+        this.start = true;
+
+        this.player1 = data.player1;
+        this.player2 = data.player2;
+
+        this.setPlayer();
+
+        this.room_id = data.room_id;
+
         this.total_row = total_row;
 
-        this.maxValue = 2;
+        this.maxValue = 1;
+        this.draggableTotal = 1;
         this.turn = 1;
 
         this.rotate = 0;
@@ -15,8 +35,117 @@ class Game {
 
         this.data = [];
 
+        this.draggable = [];
+
         this.drawBoard();
         this.generateDraggableHexagon();
+
+        this.initSocket();
+    }
+
+    setPlayer(player = null, damage = 0) {
+        if (player && damage) {
+            if (player === 1) this.player1.lifepoints -= damage;
+            if (player === 2) this.player2.lifepoints -= damage;
+        }
+
+        if (this.player1) {
+            let player1 = document.querySelector('.player-1');
+            document.querySelector('.player-1 .username').innerHTML = this.player1.username;
+            document.querySelector('.player-1 .lifepoints').innerHTML = this.player1.lifepoints;
+            player1.classList.remove('hide');
+            player1.classList.remove('lost');
+        }
+
+        if (this.player2) {
+            let player2 = document.querySelector('.player-2');
+            document.querySelector('.player-2 .username').innerHTML = this.player2.username;
+            document.querySelector('.player-2 .lifepoints').innerHTML = this.player2.lifepoints;
+            player2.classList.remove('hide');
+            player2.classList.remove('lost');
+        }
+
+        if (this.player1.lifepoints < 0 && this.start) this.gameOver(1);
+        if (this.player2.lifepoints < 0 && this.start) this.gameOver(2);
+
+        // if (update) {
+        //     this.socket.emit('update-player', {
+        //         player1: this.player1,
+        //         player2: this.player2,
+        //     });
+        // }
+    }
+
+    initSocket() {
+        this.socket.on('drop', (data) => {
+            if (this.maxValue > 1) {
+                this.draggableTotal = 2;
+            }
+
+            for (let i = 0; i < data.data.length; i++) {
+                let datum = data.data[i];
+                let el = document.querySelector(`.hexagon[data-row="${datum.row}"][data-col="${datum.col}"]`);
+                el.classList.remove('hover');
+                el.setAttribute('data-value', datum.value);
+
+                this.data[datum.row][datum.col].value = datum.value;
+            }
+
+            if (data.player === this.you) {
+                this.check(data.player);
+            }
+            this.turn++;
+
+            let draggableHexagon = document.querySelector('.draggable-hexagon');
+
+            switch (this.turn % 2) {
+                case 0:
+                    draggableHexagon.style.top = '50%';
+                    draggableHexagon.style.right = '40px';
+                    draggableHexagon.style.left = 'unset';
+                    break;
+                case 1:
+                    draggableHexagon.style.top = '50%';
+                    draggableHexagon.style.left = '40px';
+                    break;
+            }
+
+            this.draggable = data.draggable;
+
+            this.generateDraggableHexagon(data.draggable);
+        });
+
+        this.socket.on('update-max-value', (data) => {
+            this.maxValue = data.maxValue;
+            this.generateDraggableHexagon(this.draggable);
+        });
+
+        this.socket.on('update-tiles', (data) => {
+            for (let i = 0; i < data.data.length; i++) {
+                let datum = data.data[i];
+
+                for (let j = 0; j < datum.length; j++) {
+                    let item = datum[j];
+
+                    if (item && item.row != null && item.col != null)
+                        this.drawHexagon(item.row, item.col, false, item.value);
+                }
+            }
+        });
+
+        // this.socket.on('update-player', (data) => {
+        //     this.player1 = data.player1;
+        //     this.player2 = data.player2;
+        //
+        //     if (this.player1.lifepoints < 0) this.gameOver(1);
+        //     if (this.player2.lifepoints < 0) this.gameOver(2);
+        // });
+
+        this.socket.on('new-star', (data) => {
+            new Star(data.x, data.y, data.target, data.damage, data.player);
+        });
+
+        this.socket.emit('start-game', this.data);
     }
 
     drawBoard() {
@@ -26,10 +155,8 @@ class Game {
         let maxCol = parseInt(row / 2);
 
         for (let i = 0; i < row; i++) {
-            for (let j = 0; j < 20; j++) {
-                if (j >= minCol && j <= maxCol)
-                    this.drawHexagon(i, j - 3);
-            }
+            for (let j = 0; j < 20; j++) if (j >= minCol && j <= maxCol) this.drawHexagon(i, j - 3);
+
             if (i <= 5) {
                 if (i % 2) minCol--;
                 else maxCol++;
@@ -59,15 +186,15 @@ class Game {
         }
     }
 
-    drawHexagon(row, col, value = null) {
+    drawHexagon(row, col, update = false, value = null) {
         let position = this.calculateHexagon(row, col);
 
         let div = document.querySelector(`.hexagon[data-row="${row}"][data-col="${col}"]`)
             || document.createElement('div');
+
         div.className = 'hexagon';
         div.setAttribute('data-row', row);
         div.setAttribute('data-col', col);
-        div.removeAttribute('data-value');
         div.innerHTML = `<div class="hexagon-1"><div class="hexagon-2"></div></div>`;
         div.style.left = position.x + 'px';
         div.style.top = position.y + 'px';
@@ -81,26 +208,50 @@ class Game {
 
         if (value) {
             div.setAttribute('data-value', value);
-            this.data[row][col].value = value;
+        } else {
+            div.removeAttribute('data-value');
         }
 
+        this.data[row][col].value = value;
+
         this.board.append(div);
+
+        if (update && this.start) {
+            this.socket.emit('update-tiles', {
+                data: this.data,
+                player: this.you,
+            });
+        }
     }
 
-    generateDraggableHexagon() {
+    generateDraggableHexagon(data = [1, 1]) {
         let div = document.querySelector('.draggable-hexagon');
 
         div.innerHTML = '';
 
-        div = this.addDraggableHexagon(div, 1);
+        div = this.addDraggableHexagon(div, 1, data[0]);
 
-        // if (this.maxValue > 1)
-        div = this.addDraggableHexagon(div, 2);
+        if (this.maxValue > 1) {
+            this.draggableTotal = 2;
+            div = this.addDraggableHexagon(div, 2, data[1]);
+        }
     }
 
-    addDraggableHexagon(item, value) {
-        let rand = Math.floor(Math.random() * this.maxValue) + 1;
-        item.innerHTML += `<div class="hexagon draggable-hexagon-item" data-value="${value}" data-item="${value}"><div class="hexagon-1"><div class="hexagon-2"></div></div></div>`;
+    randomHexagon() {
+        let res = [];
+
+        res = [Math.floor(Math.random() * this.maxValue) + 1];
+        res.push(Math.floor(Math.random() * this.maxValue) + 1);
+
+        if (this.maxValue > 1) {
+            this.draggableTotal = 2;
+        }
+
+        return res;
+    }
+
+    addDraggableHexagon(item, count, value = null) {
+        item.innerHTML += `<div class="hexagon draggable-hexagon-item" data-value="${value}" data-item="${count}"><div class="hexagon-1"><div class="hexagon-2"></div></div></div>`;
         return item;
     }
 
@@ -161,12 +312,12 @@ class Game {
 
         let drop2 = document.querySelector(`.hexagon[data-row="${row2}"][data-col="${col2}"]`);
 
-        if (this.maxValue === 1) {
+        if (this.draggableTotal === 1 && !drop.getAttribute('data-value')) {
             drop.classList.add('hover');
             drop.setAttribute('data-value', drag.getAttribute('data-value'));
         }
 
-        if (this.maxValue > 1 && drop && drop2 && !drop.getAttribute('data-value') && !drop2.getAttribute('data-value')) {
+        if (this.draggableTotal > 1 && drop && drop2 && !drop.getAttribute('data-value') && !drop2.getAttribute('data-value')) {
             drop.classList.add('hover');
             drop.setAttribute('data-value', drag.getAttribute('data-value'));
 
@@ -175,7 +326,7 @@ class Game {
         }
     }
 
-    check() {
+    check(player) {
         for (let i = 0; i < this.data.length; i++) {
             let data = this.data[i];
             for (let j = 0; j < data.length; j++) {
@@ -185,8 +336,8 @@ class Game {
                     let res = this.searchData(datum, i, j, [], []);
 
                     if (res.length >= 3) {
-                        this.merge(res);
-                        this.check();
+                        this.merge(res, player);
+                        this.check(player);
                         return true;
                     }
                 }
@@ -195,15 +346,55 @@ class Game {
         return false;
     }
 
-    merge(res) {
+    merge(res, player) {
         this.animating = true;
 
-        let value = res[0].value + 1;
+        let value = res[0].value;
+
+        let damage = 100 * value;
+
+        // if (player === 1) this.player2.lifepoints -= damage;
+        // if (player === 2) this.player1.lifepoints -= damage;
+
+        value++;
+
+        let oldValue = this.maxValue;
+
+        this.maxValue = value < 6 ? value : this.maxValue;
+
+        if (oldValue !== this.maxValue) {
+            this.socket.emit('update-max-value', {
+                maxValue: this.maxValue,
+            })
+        }
 
         for (let i = 0; i < res.length; i++) {
             let data = res[i];
 
-            document.querySelector(`.hexagon[data-row="${data.row}"][data-col="${data.col}"]`).removeAttribute('data-value');
+            let hexagon = document.querySelector(`.hexagon[data-row="${data.row}"][data-col="${data.col}"]`);
+            hexagon.removeAttribute('data-value');
+
+            let x2, y2;
+
+            let lifepoints = document.querySelector(`.player-${player === 1 ? 2 : 1} .lifepoints`);
+
+            x2 = lifepoints.offsetLeft + lifepoints.parentElement.offsetLeft;
+            y2 = lifepoints.offsetTop + lifepoints.parentElement.offsetTop;
+
+            let target = {
+                x: x2,
+                y: y2,
+                width: lifepoints.offsetWidth,
+                height: lifepoints.offsetHeight,
+            };
+
+            this.socket.emit('new-star', {
+                x: hexagon.offsetLeft,
+                y: hexagon.offsetTop,
+                target: target,
+                damage: damage,
+                player: player === 1 ? 2 : 1,
+            });
 
             this.data[data.row][data.col].value = 0;
         }
@@ -213,9 +404,9 @@ class Game {
         rand = res[rand];
 
         setTimeout(() => {
-            if (value < 6) this.drawHexagon(rand.row, rand.col, value);
+            this.drawHexagon(rand.row, rand.col, true, value < 6 ? value : null);
             setTimeout(() => {
-                if (!this.check()) this.animating = false;
+                if (!this.check(player)) this.animating = false;
             }, 500);
         }, 500);
     }
@@ -253,8 +444,9 @@ class Game {
 
         switch (row % 2) {
             case 0:
-                res = this.searchData(nextData, row - 1, col - 1, res, gatheredData);
+                res = this.searchData(nextData, row - 1, col + 1, res, gatheredData);
                 res = this.searchData(nextData, row - 1, col, res, gatheredData);
+
                 res = this.searchData(nextData, row + 1, col, res, gatheredData);
                 res = this.searchData(nextData, row + 1, col + 1, res, gatheredData);
 
@@ -262,6 +454,7 @@ class Game {
             case 1:
                 res = this.searchData(nextData, row - 1, col - 1, res, gatheredData);
                 res = this.searchData(nextData, row - 1, col, res, gatheredData);
+
                 res = this.searchData(nextData, row + 1, col - 1, res, gatheredData);
                 res = this.searchData(nextData, row + 1, col, res, gatheredData);
 
@@ -269,5 +462,19 @@ class Game {
         }
 
         return res;
+    }
+
+    gameOver(player) {
+        this.start = false;
+
+        document.querySelector(`.player-${player}`).classList.add('lost');
+
+        let modal = document.querySelector('#modal');
+        alert(`${player === 1 ? this.player2.username : this.player1.username} Win!`);
+        modal.classList.remove('hide');
+
+        this.socket.emit('delete-room', {});
+
+        game = new Game();
     }
 }

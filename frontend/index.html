@@ -7,8 +7,49 @@
 </head>
 <body>
 
-<div id="board"></div>
+<div class="modal" id="modal">
+    <div class="modal-dialog">
+        <div class="modal-overlay">
+            <div class="modal-body">
+                <form id="form-join">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="room_id">Room Id</label>
+                        <input type="text" id="room_id" class="form-control">
+                    </div>
 
+                    <div class="form-action">
+                        <button class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main id="content">
+
+
+    <div class="player player-1 hide">
+        <img src="assets/mario.png" alt="">
+        <span class="username">Player 1</span>
+        Life Points: <span class="lifepoints">10000</span>
+    </div>
+    <div class="player player-2 hide">
+        <img src="assets/luigi.png" alt="">
+        <span class="username">Player 2</span>
+        Life Points: <span class="lifepoints">10000</span>
+    </div>
+
+
+    <div id="board"></div>
+</main>
+
+<script src="socket.io-client/dist/socket.io.js"></script>
+<script src="star.js"></script>
 <script src="game.js"></script>
 <script src="app.js"></script>
 

@@ -10,16 +10,24 @@ html, body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    font-family: "Segoe UI", sans-serif;
+    background-image: linear-gradient(to top, #797ff5, #4148cb);
 }
 
-/* Board
- */
+/* Board */
 
-#board {
+#content, #board {
     width: 1400px;
     height: 900px;
-    border: 2px solid #000;
     position: relative;
+    display: flex;
+    justify-content:center;
+    align-items: center;
+    color: #fff;
+}
+
+#board {
+    /*border: 2px solid rgba(255,255,255, .5);*/
 }
 
 /* Hexagon */
@@ -118,4 +126,71 @@ html, body {
 
 .draggable-hexagon.rotate-2 .hexagon:nth-child(2) {
     transform: translateY(2px) translateX(17px) rotate(-60deg);
+}
+
+/* Player */
+
+.player {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+
+.lost {
+    filter: grayscale(1);
+}
+
+.player-1 {
+    left: 0;
+    top: 0;
+}
+
+.player-2 {
+    right:  0;
+    top: 0;
+}
+
+.star {
+    width: 32px;
+    height: 32px;
+    background-image: url("assets/star.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    z-index: 9000;
+    position: absolute;
+    pointer-events: none;
+}
+
+/* Modal */
+
+.modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,.1);
+    z-index: 90000;
+}
+
+.modal-dialog {
+    padding: 2rem 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.modal-body {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: .4rem;
+    box-shadow: 0 2px 2px 0 rgba(0,0,0,.08);
+}
+
+.hide {
+    display: none;
 }
