@@ -12,7 +12,12 @@ class Game {
     init(total_row, data, socket) {
         console.log('new-game');
 
-        this.socket = socket;
+        this.data = [];
+
+        this.stars = [];
+
+        if (!this.socket)
+            this.initSocket(socket);
 
         this.start = true;
 
@@ -33,20 +38,21 @@ class Game {
 
         this.board.innerHTML = `<div class="draggable-hexagon rotate-0"></div>`;
 
-        this.data = [];
-
         this.draggable = [];
 
         this.drawBoard();
         this.generateDraggableHexagon();
-
-        this.initSocket();
     }
 
     setPlayer(player = null, damage = 0) {
         if (player && damage) {
+            console.log(damage);
+
             if (player === 1) this.player1.lifepoints -= damage;
             if (player === 2) this.player2.lifepoints -= damage;
+
+            if (this.player1.lifepoints < 0) this.player1.lifepoints = 0;
+            if (this.player2.lifepoints < 0) this.player2.lifepoints = 0;
         }
 
         if (this.player1) {
@@ -65,8 +71,8 @@ class Game {
             player2.classList.remove('lost');
         }
 
-        if (this.player1.lifepoints < 0 && this.start) this.gameOver(1);
-        if (this.player2.lifepoints < 0 && this.start) this.gameOver(2);
+        if (this.player1.lifepoints <= 0 && this.start) this.gameOver(1);
+        if (this.player2.lifepoints <= 0 && this.start) this.gameOver(2);
 
         // if (update) {
         //     this.socket.emit('update-player', {
@@ -76,7 +82,9 @@ class Game {
         // }
     }
 
-    initSocket() {
+    initSocket(socket) {
+        this.socket = socket;
+
         this.socket.on('drop', (data) => {
             if (this.maxValue > 1) {
                 this.draggableTotal = 2;
@@ -142,7 +150,7 @@ class Game {
         // });
 
         this.socket.on('new-star', (data) => {
-            new Star(data.x, data.y, data.target, data.damage, data.player);
+            this.stars.push(new Star(data.x, data.y, data.target, data.damage, data.player));
         });
 
         this.socket.emit('start-game', this.data);
@@ -353,6 +361,8 @@ class Game {
 
         let damage = 100 * value;
 
+        console.log(damage, value, res);
+
         // if (player === 1) this.player2.lifepoints -= damage;
         // if (player === 2) this.player1.lifepoints -= damage;
 
@@ -385,7 +395,7 @@ class Game {
                 x: x2,
                 y: y2,
                 width: lifepoints.offsetWidth,
-                height: lifepoints.offsetHeight,
+                height: lifepoints.offsetHeight * 2,
             };
 
             this.socket.emit('new-star', {
@@ -467,6 +477,12 @@ class Game {
     gameOver(player) {
         this.start = false;
 
+        this.board.innerHTML = '';
+
+        this.you = null;
+
+        this.start = false;
+
         document.querySelector(`.player-${player}`).classList.add('lost');
 
         let modal = document.querySelector('#modal');
@@ -474,7 +490,5 @@ class Game {
         modal.classList.remove('hide');
 
         this.socket.emit('delete-room', {});
-
-        game = new Game();
     }
 }

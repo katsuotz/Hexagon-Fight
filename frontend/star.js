@@ -52,9 +52,11 @@ class Star {
             item.style.top = this.y + 'px';
 
             if (
-                this.x > this.target.x && this.x < this.target.x + this.target.width &&
-                this.y > this.target.y && this.y < this.target.y + this.target.height
+                this.x >= this.target.x && this.x <= this.target.x + this.target.width &&
+                this.y >= this.target.y && this.y <= this.target.y + this.target.height
             ) {
+                console.log(item.id, 'ggggg');
+                // item.style.display = 'none';
                 item.remove();
                 game.setPlayer(this.player, this.damage);
             } else requestAnimationFrame(this.move.bind(this));

@@ -17,18 +17,22 @@ io.on('connection', function (socket) {
     console.log('user connected');
 
     socket.on('join', function (msg) {
-        console.log('join room', gameData);
-
         let room_id = msg.room_id;
 
-        if (!gameData[room_id]) {
+        if (!gameData[room_id] || gameData[room_id].over) {
+
+            console.log('new-game');
+
             gameData[room_id] = {
                 room_id: room_id,
                 ready: false,
                 player1: null,
                 player2: null,
                 data: [],
-            }
+                over: false,
+            };
+
+            console.log(gameData[room_id], gameData[room_id].data.length);
         } else {
             let data = gameData[room_id];
 
@@ -47,7 +51,7 @@ io.on('connection', function (socket) {
             id: this.id,
             username: msg.username,
             client_id: msg.client_id,
-            lifepoints: 4000
+            lifepoints: 1000
         };
 
         if (!data.player1 && !data.player2) {
@@ -101,18 +105,14 @@ io.on('connection', function (socket) {
     });
 
     socket.on('new-star', function (msg) {
+        console.log(msg);
         io.to(socket.room_id).emit('new-star', msg);
     });
 
     socket.on('delete-room', function () {
-        console.log('before', gameData);
-
         if (socket.room_id && gameData[socket.room_id]) {
-            delete gameData[socket.room_id];
-
+            gameData[socket.room_id].over = true;
             socket.leave(socket.room_id);
-            delete socket.room_id;
-            console.log('after', gameData);
         }
     });
 
@@ -128,7 +128,7 @@ io.on('connection', function (socket) {
 
                 io.to(socket.room_id).emit('update-player', gameData[socket.room_id]);
 
-                delete gameData[socket.room_id];
+                gameData[socket.room_id].over = true;
             } else {
                 if (data.player1 && data.player1.id === this.id) data.player1 = null;
                 if (data.player2 && data.player2.id === this.id) data.player2 = null;

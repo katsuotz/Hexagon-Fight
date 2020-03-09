@@ -37,6 +37,8 @@ const hasClass = (item, classes) => {
         let modal = document.getElementById('modal');
         modal.classList.add('hide');
 
+        game.data = [];
+
         board.innerHTML = 'Waiting for other player';
 
         if (!game.you) game.you = data.player1 && data.player1.client_id === client_id ? data.player1.player : data.player2.player;
